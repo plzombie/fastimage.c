@@ -73,6 +73,15 @@ fastimage_image_t fastimageOpen(const fastimage_reader_t *reader)
 	// Try to detect TGA
 	// Here should be code
 	
+	// Try to detect HEIF
+	// Here should be code
+	
+	// Read BMP meta
+	// Here should be code
+	
+	// Read TGA meta
+	// Here should be code
+	
 	// Read PCX meta
 	if(image.format == fastimage_pcx) {
 		pcx_header_min_t pcx_header_min;
@@ -90,6 +99,21 @@ fastimage_image_t fastimageOpen(const fastimage_reader_t *reader)
 				image.format = fastimage_error;
 		}
 	}
+	
+	// Read PNG meta
+	// Here should be code
+	
+	// Read GIF meta
+	// Here should be code
+	
+	// Read WEBP meta
+	// Here should be code
+	
+	// Read HEIF meta
+	// Here should be code
+	
+	// Read JPG meta
+	// Here should be code
 	
 	return image;
 }
