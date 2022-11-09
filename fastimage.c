@@ -30,6 +30,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include <string.h>
 
+typedef struct {
+	short Xmin;
+	short Ymin;
+	short Xmax;
+	short Ymax;
+	short HRes;
+	short VRes;
+	unsigned char Colormap[48];
+	unsigned char Reserved;
+	unsigned char NPlanes;
+} pcx_header_min_t;
+
 fastimage_image_t fastimageOpen(const fastimage_reader_t *reader)
 {
 	fastimage_image_t image;
@@ -55,20 +67,39 @@ fastimage_image_t fastimageOpen(const fastimage_reader_t *reader)
 		image.format = fastimage_webp;
 	else if(sign[0] == 0xFF && sign[1] == 0xD8)
 		image.format = fastimage_jpg;
-	else if(sign[0] == 10 && sign[1] == 5 && sign[2] == 1)
+	else if(sign[0] == 10 && sign[1] == 5 && sign[2] == 1 && sign[3] == 8)
 		image.format = fastimage_pcx;
 		
 	// Try to detect TGA
+	// Here should be code
+	
+	// Read PCX meta
+	if(image.format == fastimage_pcx) {
+		pcx_header_min_t pcx_header_min;
+		
+		if(reader->read(reader->context, sizeof(pcx_header_min_t), &pcx_header_min) != sizeof(pcx_header_min_t))
+			image.format = fastimage_error;
+		else {
+			image.width = (size_t)(pcx_header_min.Xmax - pcx_header_min.Xmin) + 1;
+			image.height = (size_t)(pcx_header_min.Ymax - pcx_header_min.Ymin) + 1;
+			image.bpp = 3;
+			
+			if(pcx_header_min.NPlanes == 1)
+				image.palette = 8;
+			else if(pcx_header_min.NPlanes != 3)
+				image.format = fastimage_error;
+		}
+	}
 	
 	return image;
 }
 
-size_t cdecl fastimageFileRead(void *context, size_t size, void *buf)
+static size_t cdecl fastimageFileRead(void *context, size_t size, void *buf)
 {
 	return fread(buf, 1, size, context);
 }
 
-bool cdecl fastimageFileSeek(void *context, int64_t pos)
+static bool cdecl fastimageFileSeek(void *context, int64_t pos)
 {
 	return _fseeki64(context, pos, SEEK_SET) == 0;
 }
