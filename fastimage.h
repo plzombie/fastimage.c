@@ -34,6 +34,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdint.h>
 #include <wchar.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 enum fastimage_image_format {
 	fastimage_error,
 	fastimage_unknown,
@@ -70,5 +74,9 @@ extern fastimage_image_t fastimageOpenFile(FILE *f);
 extern fastimage_image_t fastimageOpenFileA(const char *filename);
 extern fastimage_image_t fastimageOpenFileW(const wchar_t *filename);
 extern fastimage_image_t fastimageOpenHttpW(const wchar_t *url, bool support_proxy);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
