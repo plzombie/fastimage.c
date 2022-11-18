@@ -26,6 +26,8 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include <Windows.h>
+
 #include "fastimage.h"
 #include <stdlib.h>
 #include <string.h>
@@ -77,7 +79,39 @@ fastimage_image_t fastimageOpen(const fastimage_reader_t *reader)
 	// Here should be code
 	
 	// Read BMP meta
-	// Here should be code
+	if(image.format == fastimage_bmp) {
+		BITMAPINFOHEADER bmp_infoheader;
+		
+		if(!reader->seek(reader->context, sizeof(BITMAPFILEHEADER))) {
+			image.format = fastimage_error;
+			
+			goto FINAL;
+		}
+		
+		if(reader->read(reader->context, sizeof(BITMAPINFOHEADER), &bmp_infoheader) != sizeof(BITMAPINFOHEADER)) {
+			image.format = fastimage_error;
+			
+			goto FINAL;
+		}
+		
+		image.width = bmp_infoheader.biWidth;
+		image.height = bmp_infoheader.biHeight;
+		switch(bmp_infoheader.biBitCount) {
+			case 16:
+			case 24:
+			case 32:
+				image.bpp = bmp_infoheader.biBitCount / 8;
+				break;
+			case 1:
+			case 4:
+			case 8:
+				image.bpp = 4;
+				image.palette = bmp_infoheader.biBitCount;
+				break;
+			default:
+				image.format = fastimage_error;
+		}
+	}
 	
 	// Read TGA meta
 	// Here should be code
@@ -86,18 +120,20 @@ fastimage_image_t fastimageOpen(const fastimage_reader_t *reader)
 	if(image.format == fastimage_pcx) {
 		pcx_header_min_t pcx_header_min;
 		
-		if(reader->read(reader->context, sizeof(pcx_header_min_t), &pcx_header_min) != sizeof(pcx_header_min_t))
+		if(reader->read(reader->context, sizeof(pcx_header_min_t), &pcx_header_min) != sizeof(pcx_header_min_t)) {
 			image.format = fastimage_error;
-		else {
-			image.width = (size_t)(pcx_header_min.Xmax - pcx_header_min.Xmin) + 1;
-			image.height = (size_t)(pcx_header_min.Ymax - pcx_header_min.Ymin) + 1;
-			image.bpp = 3;
 			
-			if(pcx_header_min.NPlanes == 1)
-				image.palette = 8;
-			else if(pcx_header_min.NPlanes != 3)
-				image.format = fastimage_error;
+			goto FINAL;
 		}
+		
+		image.width = (size_t)(pcx_header_min.Xmax - pcx_header_min.Xmin) + 1;
+		image.height = (size_t)(pcx_header_min.Ymax - pcx_header_min.Ymin) + 1;
+		image.bpp = 3;
+			
+		if(pcx_header_min.NPlanes == 1)
+			image.palette = 8;
+		else if(pcx_header_min.NPlanes != 3)
+			image.format = fastimage_error;
 	}
 	
 	// Read PNG meta
@@ -114,6 +150,8 @@ fastimage_image_t fastimageOpen(const fastimage_reader_t *reader)
 	
 	// Read JPG meta
 	// Here should be code
+	
+FINAL:
 	
 	return image;
 }
