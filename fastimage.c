@@ -140,7 +140,27 @@ fastimage_image_t fastimageOpen(const fastimage_reader_t *reader)
 	// Here should be code
 	
 	// Read GIF meta
-	// Here should be code
+	if(image.format == fastimage_gif) {
+		unsigned short gif_header_min[3];
+		// GIF87a or GIF89a
+		if(reader->read(reader->context, 6, &gif_header_min) != 6) {
+			image.format = fastimage_error;
+			
+			goto FINAL;
+		}
+		
+		if( (gif_header_min[0] != '7'+(unsigned short)('a')*256)
+			&& (gif_header_min[0] != '9'+(unsigned short)('a')*256)) {
+			image.format = fastimage_error;
+			
+			goto FINAL;
+		}
+		
+		image.width = gif_header_min[1];
+		image.height = gif_header_min[2];
+		image.bpp = 3;
+		image.palette = 8;
+	}
 	
 	// Read WEBP meta
 	// Here should be code
