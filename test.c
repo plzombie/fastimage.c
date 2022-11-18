@@ -30,6 +30,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 int wmain(int argc, wchar_t **argv)
 {
+	fastimage_image_t image;
+
 	if(argc != 3) {
 		printf("test.exe type input\n"
 		       "\ttype = file - file input\n");
@@ -38,56 +40,58 @@ int wmain(int argc, wchar_t **argv)
 	}
 	
 	if(!wcscmp(argv[1], L"file")) {
-		fastimage_image_t image;
-		
 		image = fastimageOpenFileW(argv[2]);
-		
-		printf("format: ");
-		switch(image.format) {
-			case fastimage_error:
-				printf("error\n");
-				break;
-			case fastimage_unknown:
-				printf("unknown\n");
-				break;
-			case fastimage_bmp:
-				printf("bmp\n");
-				break;
-			case fastimage_tga:
-				printf("tga\n");
-				break;
-			case fastimage_pcx:
-				printf("pcx\n");
-				break;
-			case fastimage_png:
-				printf("png\n");
-				break;
-			case fastimage_gif:
-				printf("gif\n");
-				break;
-			case fastimage_webp:
-				printf("webp\n");
-				break;
-			case fastimage_heif:
-				printf("heic\n");
-				break;
-			case fastimage_jpg:
-				printf("jpg\n");
-				break;
-			default:
-				printf("other\n");
-				
-		}
-		
-		printf("width: %u\n", (unsigned int)image.width);
-		printf("height: %u\n", (unsigned int)image.height);
-		
-		if(image.palette)
-			printf("palette: %u bits, palette element %u bits %u channels\n", image.palette, image.bitsperpixel, image.channels);
-		else
-			printf("bits per pixel: %u, %u channel\n", image.bitsperpixel, image.channels);
+	} else if(!wcscmp(argv[1], L"http")) {
+		image = fastimageOpenHttpW(argv[2], true);
+	} else {
+		printf("Unknown input type\n");
+
+		return 0;
 	}
-		      
+
+	printf("format: ");
+	switch(image.format) {
+		case fastimage_error:
+			printf("error\n");
+			break;
+		case fastimage_unknown:
+			printf("unknown\n");
+			break;
+		case fastimage_bmp:
+			printf("bmp\n");
+			break;
+		case fastimage_tga:
+			printf("tga\n");
+			break;
+		case fastimage_pcx:
+			printf("pcx\n");
+			break;
+		case fastimage_png:
+			printf("png\n");
+			break;
+		case fastimage_gif:
+			printf("gif\n");
+			break;
+		case fastimage_webp:
+			printf("webp\n");
+			break;
+		case fastimage_heif:
+			printf("heic\n");
+			break;
+		case fastimage_jpg:
+			printf("jpg\n");
+			break;
+		default:
+			printf("other\n");		
+	}
+		
+	printf("width: %u\n", (unsigned int)image.width);
+	printf("height: %u\n", (unsigned int)image.height);
+		
+	if(image.palette)
+		printf("palette: %u bits, palette element %u bits %u channels\n", image.palette, image.bitsperpixel, image.channels);
+	else
+		printf("bits per pixel: %u, %u channel\n", image.bitsperpixel, image.channels);	      
 
 	return 0;
 }

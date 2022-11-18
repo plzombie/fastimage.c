@@ -69,5 +69,6 @@ extern fastimage_image_t fastimageOpen(const fastimage_reader_t *reader);
 extern fastimage_image_t fastimageOpenFile(FILE *f);
 extern fastimage_image_t fastimageOpenFileA(const char *filename);
 extern fastimage_image_t fastimageOpenFileW(const wchar_t *filename);
+extern fastimage_image_t fastimageOpenHttpW(const wchar_t *url, bool support_proxy);
 
 #endif

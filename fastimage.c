@@ -27,6 +27,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <Windows.h>
+#ifndef __WATCOMC__
+#include <winhttp.h>
+#endif
 
 #include "fastimage.h"
 #include <stdlib.h>
@@ -288,8 +291,8 @@ static void fastimageReadJpeg(const fastimage_reader_t *reader, unsigned char *s
 			return;
 		}
 			
-		image->width = (size_t)(jpg_bytes[1])*256+jpg_bytes[2];
-		image->height = (size_t)(jpg_bytes[3])*256+jpg_bytes[4];
+		image->width = (size_t)(jpg_bytes[3])*256+jpg_bytes[4];
+		image->height = (size_t)(jpg_bytes[1])*256+jpg_bytes[2];
 		image->channels = jpg_bytes[0];
 		image->bitsperpixel = image->channels * (unsigned int)(jpg_bytes[5]);
 	} else
@@ -416,3 +419,202 @@ fastimage_image_t fastimageOpenFileW(const wchar_t *filename)
 	
 	return fastimageOpenFile(f);
 }
+
+#ifdef __WATCOMC__
+fastimage_image_t fastimageOpenHttpW(const wchar_t *url, bool support_proxy)
+{
+	fastimage_image_t image;
+
+	(void)url;
+	(void)support_proxy;
+
+	memset(&image, 0, sizeof(fastimage_image_t));
+	image.format = fastimage_error;
+	
+	return image;
+}
+#else
+
+typedef struct {
+	HINTERNET request;
+	int64_t offset;
+} fastimage_http_context_t;
+
+static size_t cdecl fastimageHttpRead(void *context, size_t size, void* buf)
+{
+	fastimage_http_context_t* httpc;
+	
+	size_t total_downloaded = 0;
+
+	httpc = (fastimage_http_context_t*)context;
+
+	//printf("read %u\n", (unsigned int)size);
+
+	while (1) {
+		DWORD data_awailable = 0, data_downloaded = 0, bytes_to_read = 0;
+
+		//printf("read data\n");
+
+		if(!WinHttpQueryDataAvailable(httpc->request, &data_awailable))
+			return total_downloaded;
+
+		//printf("awailable %u\n", data_awailable);
+
+		if(data_awailable > (size-total_downloaded))
+			bytes_to_read = (DWORD)(size - total_downloaded);
+		else
+			bytes_to_read = data_awailable;
+
+		if(data_awailable) {
+			if(!WinHttpReadData(httpc->request, buf, bytes_to_read, &data_downloaded))
+				return total_downloaded;
+
+			//printf("downloaded %u\n", data_downloaded);
+
+			httpc->offset += data_downloaded;
+			total_downloaded += data_downloaded;
+		}
+		if(total_downloaded == size)
+			break;
+		if(data_awailable == 0)
+			break;
+	}
+
+	return total_downloaded;
+}
+
+static bool cdecl fastimageHttpSeek(void *context, int64_t pos)
+{
+	fastimage_http_context_t *httpc;
+	int64_t bytes_to_read;
+	char *buf;
+
+	httpc = (fastimage_http_context_t *)context;
+
+	if(pos < httpc->offset)
+		return false;
+	else if(pos == httpc->offset)
+		return true;
+
+	bytes_to_read = pos - httpc->offset;
+
+	if(bytes_to_read > SIZE_MAX)
+		return false;
+
+	buf = malloc((size_t)bytes_to_read);
+	if(!buf)
+		return false;
+
+	fastimageHttpRead(context, (size_t)bytes_to_read, buf);
+
+	free(buf);
+
+	if(pos == httpc->offset)
+		return true;
+	else
+		return false;
+}
+
+fastimage_image_t fastimageOpenHttpW(const wchar_t *url, bool support_proxy)
+{
+	HINTERNET session = 0, connect = 0, request = 0;
+	bool success = true;
+	wchar_t *url_server = 0, *url_path = 0, *url_copy = 0;
+	size_t url_len;
+	fastimage_image_t image;
+	
+	url_len = wcslen(url);
+	url_copy = malloc((url_len+1)*sizeof(wchar_t));
+	if(url_copy) {
+		memcpy(url_copy, url, url_len*2);
+		url_copy[url_len] = 0;
+
+		url_server = wcschr(url_copy, L':');
+		if(!url_server) success = false;
+		else if(*(url_server+1) == '/' && *(url_server+2) == '/') {
+			url_server += 3;
+			url_path = wcschr(url_server, L'/');
+			if(!url_path) success = false;
+			else {
+				*url_path = 0;
+				url_path += 1;
+			}
+		} else success = false;
+	} else success = false;
+
+	if(success) {
+		session = WinHttpOpen(
+			L"fastimage_c/1.0",
+			support_proxy?(WINHTTP_ACCESS_TYPE_DEFAULT_PROXY):(WINHTTP_ACCESS_TYPE_NO_PROXY),
+			WINHTTP_NO_PROXY_NAME,
+			WINHTTP_NO_PROXY_BYPASS,
+			0);
+		if(!session) success = false;
+	}
+
+	if(success) {
+		connect = WinHttpConnect(
+			session,
+			url_server,
+			INTERNET_DEFAULT_PORT,
+			0);
+		if(!connect) success = false;
+	}
+
+	if(success) {
+		request = WinHttpOpenRequest(
+			connect,
+			L"GET",
+			url_path,
+			NULL,
+			WINHTTP_NO_REFERER,
+			WINHTTP_DEFAULT_ACCEPT_TYPES,
+			0
+		);
+		if(!request) success = false;
+	}
+
+	if(success) {
+		fastimage_http_context_t context;
+		fastimage_reader_t reader;
+		BOOL results;
+
+		results = WinHttpSendRequest(
+			request,
+			WINHTTP_NO_ADDITIONAL_HEADERS,
+			0,
+			WINHTTP_NO_REQUEST_DATA,
+			0,
+			0,
+			0);
+
+		if(results != FALSE)
+			results = WinHttpReceiveResponse(request, NULL);
+
+		if(results != FALSE) {
+			context.offset = 0;
+			context.request = request;
+
+			reader.context = &context;
+			reader.read = fastimageHttpRead;
+			reader.seek = fastimageHttpSeek;
+
+			image = fastimageOpen(&reader);
+		} else
+
+		if(results == FALSE) success = false;
+	}
+	
+	if(!success) {
+		memset(&image, 0, sizeof(fastimage_image_t));
+		image.format = fastimage_error;
+	}
+
+	if(url_copy) free(url_copy);
+	if(request) WinHttpCloseHandle(request);
+	if(connect) WinHttpCloseHandle(connect);
+	if(session) WinHttpCloseHandle(session);
+
+	return image;
+}
+#endif
