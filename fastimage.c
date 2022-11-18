@@ -169,7 +169,84 @@ fastimage_image_t fastimageOpen(const fastimage_reader_t *reader)
 	// Here should be code
 	
 	// Read JPG meta
-	// Here should be code
+	if(image.format == fastimage_jpg) {
+		int64_t jpg_curr_offt = 4;
+		unsigned short jpg_frame;
+		int64_t jpg_segment_size;
+		
+		jpg_frame = sign[2]+(unsigned short)(sign[3])*256;
+		
+		// First of all, skipping segments we don't needed
+		// TODO: there are segments without length (with empty or 2-byte data). Need to check them
+		while(1) {
+			unsigned char jpg_bytes[2];
+			
+			//printf("jpeg segment %hx\n", jpg_frame);
+			
+			// Read segment size
+			if(reader->read(reader->context, 2, jpg_bytes) != 2) {
+				image.format = fastimage_error;
+				
+				goto FINAL;
+			}
+			
+			jpg_curr_offt += 2;
+			
+			jpg_segment_size = (int64_t)(jpg_bytes[0])*256+jpg_bytes[1];
+			
+			if(jpg_segment_size < 2) {
+				image.format = fastimage_error;
+				
+				goto FINAL;
+			}
+			
+			jpg_segment_size -= 2;
+			
+			if(jpg_frame == 0xC0FF || jpg_frame == 0xC1FF || jpg_frame == 0xC2FF) {
+				break;
+			}
+			
+			// Skip segment
+			jpg_curr_offt += jpg_segment_size;
+			
+			if(!reader->seek(reader->context, jpg_curr_offt)) {
+				image.format = fastimage_error;
+				
+				goto FINAL;
+			}
+			
+			// Read next segment signature
+			if(reader->read(reader->context, 2, &jpg_frame) != 2) {
+				image.format = fastimage_error;
+				
+				goto FINAL;
+			}
+			
+			jpg_curr_offt += 2;
+		}
+		
+		if(jpg_frame == 0xC0FF || jpg_frame == 0xC1FF || jpg_frame == 0xC2FF) {
+			// Found segment with header
+			unsigned char jpg_bytes[6];
+			
+			if(jpg_segment_size < 6) {
+				image.format = fastimage_error;
+					
+				goto FINAL;
+			}
+				
+			if(reader->read(reader->context, 6, jpg_bytes) != 6) {
+				image.format = fastimage_error;
+					
+				goto FINAL;
+			}
+			
+			image.width = (size_t)(jpg_bytes[1])*256+jpg_bytes[2];
+			image.height = (size_t)(jpg_bytes[3])*256+jpg_bytes[4];
+			image.bpp = jpg_bytes[5];
+		} else
+			image.format = fastimage_error;
+	}
 	
 FINAL:
 	
