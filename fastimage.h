@@ -51,7 +51,8 @@ typedef struct {
 	int format;
 	size_t width;
 	size_t height;
-	unsigned int bpp;
+	unsigned int channels;
+	unsigned int bitsperpixel;
 	unsigned int palette;
 } fastimage_image_t;
 

@@ -83,9 +83,9 @@ int wmain(int argc, wchar_t **argv)
 		printf("height: %u\n", (unsigned int)image.height);
 		
 		if(image.palette)
-			printf("palette: %u bits, palette element %u bytes\n", image.palette, image.bpp);
+			printf("palette: %u bits, palette element %u bits %u channels\n", image.palette, image.bitsperpixel, image.channels);
 		else
-			printf("bytes per pixel: %u\n", image.bpp);
+			printf("bits per pixel: %u, %u channel\n", image.bitsperpixel, image.channels);
 	}
 		      
 

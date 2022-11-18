@@ -69,17 +69,22 @@ static void fastimageReadBmp(const fastimage_reader_t *reader, unsigned char *si
 		case 16:
 		case 24:
 		case 32:
-			image->bpp = bmp_infoheader.biBitCount / 8;
+			image->bitsperpixel = bmp_infoheader.biBitCount;
 			break;
 		case 1:
 		case 4:
 		case 8:
-			image->bpp = 4;
+			image->bitsperpixel = 32;
 			image->palette = bmp_infoheader.biBitCount;
 			break;
 		default:
 			image->format = fastimage_error;
 	}
+	
+	if(bmp_infoheader.biBitCount == 16)
+		image->channels = 3;
+	else
+		image->channels = image->bitsperpixel / 8;
 }
 
 static void fastimageReadPcx(const fastimage_reader_t *reader, unsigned char *sign, fastimage_image_t *image)
@@ -96,7 +101,8 @@ static void fastimageReadPcx(const fastimage_reader_t *reader, unsigned char *si
 
 	image->width = (size_t)(pcx_header_min.Xmax - pcx_header_min.Xmin) + 1;
 	image->height = (size_t)(pcx_header_min.Ymax - pcx_header_min.Ymin) + 1;
-	image->bpp = 3;
+	image->channels = 3;
+	image->bitsperpixel = 24;
 
 	if(pcx_header_min.NPlanes == 1)
 		image->palette = 8;
@@ -152,24 +158,29 @@ static void fastimageReadPng(const fastimage_reader_t *reader, unsigned char *si
 	
 	switch(png_bytes[9]) {
 		case 0:
-			image->bpp = 1;
+			image->channels = 1;
 			break;
 		case 2:
-			image->bpp = 3;
+			image->channels = 3;
 			break;
 		case 3:
-			image->bpp = 3;
+			image->channels = 3;
 			image->palette = png_bytes[8];
 			break;
 		case 4:
-			image->bpp = 2;
+			image->channels = 2;
 			break;
 		case 6:
-			image->bpp = 4;
+			image->channels = 4;
 			break;
 		default:
 			goto PNG_ERROR;
 	}
+
+	if(image->palette)
+		image->bitsperpixel = 24;
+	else
+		image->bitsperpixel = (unsigned int)(png_bytes[8]) * image->channels;
 
 	return;
 	
@@ -199,7 +210,8 @@ static void fastimageReadGif(const fastimage_reader_t *reader, unsigned char *si
 		
 	image->width = gif_header_min[1];
 	image->height = gif_header_min[2];
-	image->bpp = 3;
+	image->bitsperpixel = 24;
+	image->channels = 3;
 	image->palette = 8;
 }
 
@@ -278,7 +290,8 @@ static void fastimageReadJpeg(const fastimage_reader_t *reader, unsigned char *s
 			
 		image->width = (size_t)(jpg_bytes[1])*256+jpg_bytes[2];
 		image->height = (size_t)(jpg_bytes[3])*256+jpg_bytes[4];
-		image->bpp = jpg_bytes[5];
+		image->channels = jpg_bytes[0];
+		image->bitsperpixel = image->channels * (unsigned int)(jpg_bytes[5]);
 	} else
 		image->format = fastimage_error;
 }
