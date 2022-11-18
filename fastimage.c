@@ -104,6 +104,79 @@ static void fastimageReadPcx(const fastimage_reader_t *reader, unsigned char *si
 		image->format = fastimage_error;
 }
 
+static void fastimageReadPng(const fastimage_reader_t *reader, unsigned char *sign, fastimage_image_t *image)
+{
+	unsigned char png_bytes[10];
+	int64_t png_curr_offt = 4;
+	uint32_t png_chunk_size;
+	
+	(void)sign; // Unused
+	
+	// Read last part of signature
+	if(reader->read(reader->context, 4, png_bytes) != 4)
+		goto PNG_ERROR;
+	
+	png_curr_offt += 4;
+	
+	if(memcmp(png_bytes, "\x0d\x0a\x1a\x0a", 4))
+		goto PNG_ERROR;
+	
+	// Skip to header chunk
+	while(1) {
+		unsigned char png_chunk_head[8];
+		
+		if(reader->read(reader->context, 8, png_chunk_head) != 8)
+			goto PNG_ERROR;
+		
+		png_curr_offt += 8;
+		
+		png_chunk_size = (uint32_t)(png_chunk_head[0])*16777216+(uint32_t)(png_chunk_head[1])*65536+(uint32_t)(png_chunk_head[2])*256+png_chunk_head[3];
+		
+		if(!memcmp(png_chunk_head+4, "IHDR", 4))
+			break;
+			
+		png_curr_offt += (int64_t)4 + png_chunk_size;
+		
+		if(!reader->seek(reader->context, png_curr_offt))
+			goto PNG_ERROR;
+	}
+	
+	if(png_chunk_size != 0xD)
+		goto PNG_ERROR;
+
+	if(reader->read(reader->context, 10, png_bytes) != 10)
+		goto PNG_ERROR;
+
+	image->width = (uint32_t)(png_bytes[0])*16777216+(uint32_t)(png_bytes[1])*65536+(uint32_t)(png_bytes[2])*256+png_bytes[3];
+	image->height = (uint32_t)(png_bytes[4])*16777216+(uint32_t)(png_bytes[5])*65536+(uint32_t)(png_bytes[6])*256+png_bytes[7];
+	
+	switch(png_bytes[9]) {
+		case 0:
+			image->bpp = 1;
+			break;
+		case 2:
+			image->bpp = 3;
+			break;
+		case 3:
+			image->bpp = 3;
+			image->palette = png_bytes[8];
+			break;
+		case 4:
+			image->bpp = 2;
+			break;
+		case 6:
+			image->bpp = 4;
+			break;
+		default:
+			goto PNG_ERROR;
+	}
+
+	return;
+	
+PNG_ERROR:
+	image->format = fastimage_error;
+}
+
 static void fastimageReadGif(const fastimage_reader_t *reader, unsigned char *sign, fastimage_image_t *image)
 {
 	unsigned short gif_header_min[3];
@@ -256,7 +329,8 @@ fastimage_image_t fastimageOpen(const fastimage_reader_t *reader)
 		fastimageReadPcx(reader, sign, &image);
 	
 	// Read PNG meta
-	// Here should be code
+	if(image.format == fastimage_png)
+		fastimageReadPng(reader, sign, &image);
 	
 	// Read GIF meta
 	if(image.format == fastimage_gif)
