@@ -293,8 +293,8 @@ static void fastimageReadJpeg(const fastimage_reader_t *reader, unsigned char *s
 			
 		image->width = (size_t)(jpg_bytes[3])*256+jpg_bytes[4];
 		image->height = (size_t)(jpg_bytes[1])*256+jpg_bytes[2];
-		image->channels = jpg_bytes[0];
-		image->bitsperpixel = image->channels * (unsigned int)(jpg_bytes[5]);
+		image->channels = jpg_bytes[5];
+		image->bitsperpixel = image->channels * (unsigned int)(jpg_bytes[0]);
 	} else
 		image->format = fastimage_error;
 }
