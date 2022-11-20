@@ -51,8 +51,8 @@ int main(int argc, char **argv)
 #else
 	if(!strcmp(argv[1], "file")) {
 		image = fastimageOpenFileA(argv[2]);
-	} else if(!strcmp(argv[1], "http")) {
-		image = fastimageOpenHttpA(argv[2], true);
+	/*} else if(!strcmp(argv[1], "http")) {
+		image = fastimageOpenHttpA(argv[2], true);*/
 #endif
 	} else {
 		printf("Unknown input type\n");
