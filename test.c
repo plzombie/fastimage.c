@@ -28,7 +28,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "fastimage.h"
 
+#if defined(WIN32)
 int wmain(int argc, wchar_t **argv)
+#else
+int main(int argc, char **argv)
+#endif
 {
 	fastimage_image_t image;
 
@@ -39,10 +43,17 @@ int wmain(int argc, wchar_t **argv)
 		return 0;
 	}
 	
+#if defined(WIN32)
 	if(!wcscmp(argv[1], L"file")) {
 		image = fastimageOpenFileW(argv[2]);
 	} else if(!wcscmp(argv[1], L"http")) {
 		image = fastimageOpenHttpW(argv[2], true);
+#else
+	if(!strcmp(argv[1], "file")) {
+		image = fastimageOpenFileA(argv[2]);
+	} else if(!strcmp(argv[1], "http")) {
+		image = fastimageOpenHttpA(argv[2], true);
+#endif
 	} else {
 		printf("Unknown input type\n");
 

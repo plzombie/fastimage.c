@@ -31,9 +31,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if !defined(__WATCOMC__)
 #include <winhttp.h>
 #endif
+#else
+#define _LARGEFILE_SOURCE
+#define _LARGEFILE64_SOURCE
 #endif
 
 #include "fastimage.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -384,7 +388,11 @@ static size_t FASTIMAGE_APIENTRY fastimageFileRead(void *context, size_t size, v
 
 static bool FASTIMAGE_APIENTRY fastimageFileSeek(void *context, int64_t pos)
 {
+#if defined(WIN32)
 	return _fseeki64(context, pos, SEEK_SET) == 0;
+#else
+	return fseeko64(context, pos, SEEK_SET) == 0;
+#endif
 }
 
 fastimage_image_t fastimageOpenFile(FILE *f)
@@ -414,6 +422,43 @@ fastimage_image_t fastimageOpenFileA(const char *filename)
 	
 	return fastimageOpenFile(f);
 }
+
+#if !defined(WIN32)
+FILE *_wfopen(const wchar_t* filename, const wchar_t* mode)
+{
+	size_t filename_len, mode_len;
+	char* cfilename = 0, * cmode = 0;
+	FILE *f = 0;
+
+	filename_len = wcslen(filename);
+	mode_len = wcslen(mode);
+
+	cfilename = malloc(filename_len * MB_CUR_MAX + 1);
+	cmode = malloc(mode_len * MB_CUR_MAX + 1);
+	if (!cfilename || !cmode) {
+		errno = ENOMEM;
+		goto FINAL;
+	}
+
+	if (wcstombs(cfilename, filename, filename_len * MB_CUR_MAX + 1) == (size_t)(-1)) {
+		errno = EINVAL;
+		goto FINAL;
+	}
+
+	if (wcstombs(cmode, mode, mode_len * MB_CUR_MAX + 1) == (size_t)(-1)) {
+		errno = EINVAL;
+		goto FINAL;
+	}
+
+	f = fopen(cfilename, cmode);
+
+FINAL:
+	if (cfilename) free(cfilename);
+	if (cmode) free(cmode);
+
+	return f;
+}
+#endif
 
 fastimage_image_t fastimageOpenFileW(const wchar_t *filename)
 {
