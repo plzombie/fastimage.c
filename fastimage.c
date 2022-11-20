@@ -27,7 +27,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <Windows.h>
-#ifndef __WATCOMC__
+#if defined(WIN32) && !defined(__WATCOMC__)
 #include <winhttp.h>
 #endif
 
@@ -420,7 +420,7 @@ fastimage_image_t fastimageOpenFileW(const wchar_t *filename)
 	return fastimageOpenFile(f);
 }
 
-#ifdef __WATCOMC__
+#if defined(__WATCOMC__) || !defined(WIN32)
 fastimage_image_t fastimageOpenHttpW(const wchar_t *url, bool support_proxy)
 {
 	fastimage_image_t image;

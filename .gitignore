@@ -47,5 +47,8 @@
 *.heif
 *.jpg
 
+#GCC
+*.o
 
-
+#Unix Build
+BUILD_UNIX_MAKEFILE/test

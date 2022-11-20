@@ -16,4 +16,4 @@ Library to detect image size and type
 ## Supported data streams
 
 * file - via filename or file handle
-* http - via http(s) link
+* http - via http(s) link (Windows only)
