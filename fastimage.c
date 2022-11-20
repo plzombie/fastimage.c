@@ -26,9 +26,11 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#if defined(WIN32)
 #include <Windows.h>
-#if defined(WIN32) && !defined(__WATCOMC__)
+#if !defined(__WATCOMC__)
 #include <winhttp.h>
+#endif
 #endif
 
 #include "fastimage.h"
@@ -47,20 +49,30 @@ typedef struct {
 	unsigned char NPlanes;
 } pcx_header_min_t;
 
+#define BMP_FILEHEADER_SIZE 14
+
+typedef struct {
+	int biSize;
+	int biWidth;
+	int biHeight;
+	short biPlanes;
+	short biBitCount;
+} bmp_infoheader_min_t;
+
 
 static void fastimageReadBmp(const fastimage_reader_t *reader, unsigned char *sign, fastimage_image_t *image)
 {
-	BITMAPINFOHEADER bmp_infoheader;
+	bmp_infoheader_min_t bmp_infoheader;
 	
 	(void)sign; // Unused
 		
-	if(!reader->seek(reader->context, sizeof(BITMAPFILEHEADER))) {
+	if(!reader->seek(reader->context, BMP_FILEHEADER_SIZE)) {
 		image->format = fastimage_error;
 
 		return;
 	}
 
-	if(reader->read(reader->context, sizeof(BITMAPINFOHEADER), &bmp_infoheader) != sizeof(BITMAPINFOHEADER)) {
+	if(reader->read(reader->context, sizeof(bmp_infoheader_min_t), &bmp_infoheader) != sizeof(bmp_infoheader_min_t)) {
 		image->format = fastimage_error;
 
 		return;
@@ -365,12 +377,12 @@ fastimage_image_t fastimageOpen(const fastimage_reader_t *reader)
 	return image;
 }
 
-static size_t cdecl fastimageFileRead(void *context, size_t size, void *buf)
+static size_t FASTIMAGE_APIENTRY fastimageFileRead(void *context, size_t size, void *buf)
 {
 	return fread(buf, 1, size, context);
 }
 
-static bool cdecl fastimageFileSeek(void *context, int64_t pos)
+static bool FASTIMAGE_APIENTRY fastimageFileSeek(void *context, int64_t pos)
 {
 	return _fseeki64(context, pos, SEEK_SET) == 0;
 }
@@ -440,7 +452,7 @@ typedef struct {
 	int64_t offset;
 } fastimage_http_context_t;
 
-static size_t cdecl fastimageHttpRead(void *context, size_t size, void* buf)
+static size_t FASTIMAGE_APIENTRY fastimageHttpRead(void *context, size_t size, void* buf)
 {
 	fastimage_http_context_t* httpc;
 	
@@ -483,7 +495,7 @@ static size_t cdecl fastimageHttpRead(void *context, size_t size, void* buf)
 	return total_downloaded;
 }
 
-static bool cdecl fastimageHttpSeek(void *context, int64_t pos)
+static bool FASTIMAGE_APIENTRY fastimageHttpSeek(void *context, int64_t pos)
 {
 	fastimage_http_context_t *httpc;
 	int64_t bytes_to_read;

@@ -38,6 +38,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 extern "C" {
 #endif
 
+#ifdef WIN32
+#define FASTIMAGE_APIENTRY cdecl
+#else
+#define FASTIMAGE_APIENTRY
+#endif
+
 enum fastimage_image_format {
 	fastimage_error,
 	fastimage_unknown,
@@ -60,8 +66,8 @@ typedef struct {
 	unsigned int palette;
 } fastimage_image_t;
 
-typedef size_t (cdecl * fastimage_readfunc_t)(void *context, size_t size, void *buf);
-typedef bool (cdecl * fastimage_seekfunc_t)(void *context, int64_t pos);
+typedef size_t (FASTIMAGE_APIENTRY * fastimage_readfunc_t)(void *context, size_t size, void *buf);
+typedef bool (FASTIMAGE_APIENTRY * fastimage_seekfunc_t)(void *context, int64_t pos);
 
 typedef struct {
 	void *context;
