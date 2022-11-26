@@ -28,6 +28,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "fastimage.h"
 
+#include <stdio.h>
+#include <string.h>
+
 #if defined(WIN32)
 int wmain(int argc, wchar_t **argv)
 #else
