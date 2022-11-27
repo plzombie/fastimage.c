@@ -26,6 +26,10 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#if defined(FASTIMAGE_USE_LIBCURL)
+#include <curl/curl.h>
+#endif
+
 #if defined(WIN32)
 #include <Windows.h>
 #if !defined(__WATCOMC__)
@@ -478,21 +482,85 @@ fastimage_image_t fastimageOpenFileW(const wchar_t *filename)
 	return fastimageOpenFile(f);
 }
 
-#if defined(__WATCOMC__) || !defined(WIN32)
-fastimage_image_t fastimageOpenHttpW(const wchar_t *url, bool support_proxy)
+#if defined(FASTIMAGE_USE_LIBCURL)
+typedef struct {
+	CURL *curl;
+	int64_t offset;
+} fastimage_curl_context_t;
+
+static size_t FASTIMAGE_APIENTRY fastimageHttpRead(void *context, size_t size, void* buf)
+{
+	return 0;
+}
+
+static bool FASTIMAGE_APIENTRY fastimageHttpSeek(void *context, int64_t pos)
+{
+	return false;
+}
+
+fastimage_image_t fastimageOpenHttpA(const char *url, bool support_proxy)
 {
 	fastimage_image_t image;
+	fastimage_curl_context_t context;
+	bool success = true;
+	
+	context.offset = 0;
+	context.curl = curl_easy_init();
+	if(!curl) success = false;
+	
+	if(success) {
+		curl_easy_setopt(curl, CURLOPT_URL, url);
+	
+		if(curl_easy_perform(curl) != CURLE_OK)
+			success = false;
+	}
 
-	(void)url;
-	(void)support_proxy;
+	if(success) {
+		reader.context = &context;
+		reader.read = fastimageHttpRead;
+		reader.seek = fastimageHttpSeek;
 
-	memset(&image, 0, sizeof(fastimage_image_t));
-	image.format = fastimage_error;
+		image = fastimageOpen(&reader);
+	}
+	
+	if(!success) {
+		memset(&image, 0, sizeof(fastimage_image_t));
+		image.format = fastimage_error;
+	}
+	
+	if(context.curl) curl_easy_cleanup(context.curl);
 	
 	return image;
 }
-#else
 
+fastimage_image_t fastimageOpenHttpW(const wchar_t *url, bool support_proxy)
+{
+	fastimage_image_t image;
+	char *urlc = 0;
+	bool success = true;
+	size_t url_len;
+	
+	url_len = wcslen(url);
+	urlc = malloc(url_len*4+1);
+	if(!urlc) success = false;
+	
+	if(success) {
+		urlc[url_len] = 0;
+		wcstombs(urlc, url, url_len*4);
+	}
+	
+	image = fastimageOpenHttpA(urlc, support_proxy);
+	
+	if(!success) {
+		memset(&image, 0, sizeof(fastimage_image_t));
+		image.format = fastimage_error;
+	}
+	
+	if(urlc) free(urlc);
+	
+	return image;
+}
+#elif defined(WIN32) && !defined(__WATCOMC__)
 typedef struct {
 	HINTERNET request;
 	int64_t offset;
@@ -673,6 +741,45 @@ fastimage_image_t fastimageOpenHttpW(const wchar_t *url, bool support_proxy)
 	if(connect) WinHttpCloseHandle(connect);
 	if(session) WinHttpCloseHandle(session);
 
+	return image;
+}
+
+fastimage_image_t fastimageOpenHttpA(const char *url, bool support_proxy)
+{
+	fastimage_image_t image;
+
+	(void)url;
+	(void)support_proxy;
+
+	memset(&image, 0, sizeof(fastimage_image_t));
+	image.format = fastimage_error;
+	
+	return image;
+}
+#else
+fastimage_image_t fastimageOpenHttpW(const wchar_t *url, bool support_proxy)
+{
+	fastimage_image_t image;
+
+	(void)url;
+	(void)support_proxy;
+
+	memset(&image, 0, sizeof(fastimage_image_t));
+	image.format = fastimage_error;
+	
+	return image;
+}
+
+fastimage_image_t fastimageOpenHttpA(const char *url, bool support_proxy)
+{
+	fastimage_image_t image;
+
+	(void)url;
+	(void)support_proxy;
+
+	memset(&image, 0, sizeof(fastimage_image_t));
+	image.format = fastimage_error;
+	
 	return image;
 }
 #endif
