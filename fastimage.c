@@ -30,7 +30,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <curl/curl.h>
 #endif
 
-#if defined(WIN32)
+#if defined(_WIN32)
 #include <Windows.h>
 #if !defined(__WATCOMC__)
 #include <winhttp.h>
@@ -393,7 +393,7 @@ static size_t FASTIMAGE_APIENTRY fastimageFileRead(void *context, size_t size, v
 
 static bool FASTIMAGE_APIENTRY fastimageFileSeek(void *context, int64_t pos)
 {
-#if defined(WIN32)
+#if defined(_WIN32)
 	return _fseeki64(context, pos, SEEK_SET) == 0;
 #else
 	return fseeko64(context, pos, SEEK_SET) == 0;
@@ -428,7 +428,7 @@ fastimage_image_t fastimageOpenFileA(const char *filename)
 	return fastimageOpenFile(f);
 }
 
-#if !defined(WIN32)
+#if !defined(_WIN32)
 FILE *_wfopen(const wchar_t* filename, const wchar_t* mode)
 {
 	size_t filename_len, mode_len;
@@ -560,7 +560,7 @@ fastimage_image_t fastimageOpenHttpW(const wchar_t *url, bool support_proxy)
 	
 	return image;
 }
-#elif defined(WIN32) && !defined(__WATCOMC__)
+#elif defined(_WIN32) && !defined(__WATCOMC__)
 typedef struct {
 	HINTERNET request;
 	int64_t offset;
