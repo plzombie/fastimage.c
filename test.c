@@ -31,7 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 #include <string.h>
 
-#if defined(WIN32)
+#if defined(_WIN32)
 int wmain(int argc, wchar_t **argv)
 #else
 int main(int argc, char **argv)
@@ -46,7 +46,7 @@ int main(int argc, char **argv)
 		return 0;
 	}
 	
-#if defined(WIN32)
+#if defined(_WIN32)
 	if(!wcscmp(argv[1], L"file")) {
 		image = fastimageOpenFileW(argv[2]);
 	} else if(!wcscmp(argv[1], L"http")) {
