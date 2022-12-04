@@ -45,7 +45,10 @@
 *.gif
 *.webp
 *.heif
+*.heic
 *.jpg
+*.avif
+*.avifs
 
 #GCC
 *.o

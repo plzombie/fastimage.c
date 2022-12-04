@@ -377,19 +377,16 @@ fastimage_image_t fastimageOpen(const fastimage_reader_t *reader)
 	
 	if(!memcmp(sign, "BM", 2))
 		image.format = fastimage_bmp;
-	if(!memcmp(sign, "\x89PNG", 4))
+	else if(!memcmp(sign, "\x89PNG", 4))
 		image.format = fastimage_png;
-	if(!memcmp(sign, "GIF8", 4)) // GIF87a or GIF89a
+	else if(!memcmp(sign, "GIF8", 4)) // GIF87a or GIF89a
 		image.format = fastimage_gif;
-	if(!memcmp(sign, "RIFF", 4))
+	else if(!memcmp(sign, "RIFF", 4))
 		image.format = fastimage_webp;
 	else if(sign[0] == 0xFF && sign[1] == 0xD8)
 		image.format = fastimage_jpg;
 	else if(sign[0] == 10 && sign[1] == 5 && sign[2] == 1 && sign[3] == 8)
 		image.format = fastimage_pcx;
-	
-	// Try to detect HEIF
-	// Here should be code
 
 	// Try to detect TGA
 	switch(sign[2]) { // DataType
@@ -406,6 +403,39 @@ fastimage_image_t fastimageOpen(const fastimage_reader_t *reader)
 				image.format = fastimage_tga;
 			break;
 	}
+
+	// Try to detect HEIF or AVIF
+	do {
+		size_t ftyp_size, i;
+		unsigned char *ftyp_body;
+
+		ftyp_size = (size_t)(sign[0])*16777216+(size_t)(sign[1])*65536+(size_t)(sign[2])*256+(size_t)(sign[3]);
+
+		if(ftyp_size < 8) break;
+
+		ftyp_size -= 8;
+		if(ftyp_size%4) break;
+
+		ftyp_body = malloc(ftyp_size);
+		if(!ftyp_body) break;
+
+		if(reader->read(reader->context, ftyp_size, ftyp_body) != ftyp_size) {
+			free(ftyp_body);
+			break;
+		}
+
+		for(i = 0; i < ftyp_size; i += 4) {
+			if(!memcmp(ftyp_body+i, "heic", 4) || !memcmp(ftyp_body+i, "hevc", 4)) {
+				image.format = fastimage_heif;
+				break;
+			}
+			if(!memcmp(ftyp_body + i, "avif", 4) || !memcmp(ftyp_body+i, "avis", 4)) {
+				image.format = fastimage_avif;
+				break;
+			}
+		}
+		free(ftyp_body);
+	} while(0);
 	
 	// Read BMP meta
 	if(image.format == fastimage_bmp)

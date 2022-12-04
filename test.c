@@ -95,6 +95,9 @@ int main(int argc, char **argv)
 		case fastimage_jpg:
 			printf("jpg\n");
 			break;
+		case fastimage_avif:
+			printf("avif\n");
+			break;
 		default:
 			printf("other\n");		
 	}
