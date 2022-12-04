@@ -111,6 +111,45 @@ static void fastimageReadBmp(const fastimage_reader_t *reader, unsigned char *si
 		image->channels = image->bitsperpixel / 8;
 }
 
+static void fastimageReadTga(const fastimage_reader_t *reader, unsigned char *sign, fastimage_image_t *image)
+{
+	unsigned char tga_header[18];
+
+	memcpy(tga_header, sign, 4);
+
+	if(reader->read(reader->context, 14, tga_header+4) != 14) {
+		image->format = fastimage_error;
+
+		return;
+	}
+
+	image->width = tga_header[12]+256*tga_header[13];
+	image->height = tga_header[14]+256*tga_header[15];
+
+	if(tga_header[1] == 1 || tga_header[1] == 9) {
+		if(tga_header[16] != 8)
+			goto TGA_ERROR;
+
+		image->palette = tga_header[16];
+		image->bitsperpixel = tga_header[7];
+	} else {
+		image->bitsperpixel = tga_header[16];
+	}
+
+	if(image->bitsperpixel % 8 == 0 && image->bitsperpixel > 16)
+		image->channels = image->bitsperpixel / 8;
+	else if(image->bitsperpixel == 8)
+		image->channels = 1;
+	else
+		image->channels = 3;
+
+	return;
+
+TGA_ERROR:
+	memset(image, 0, sizeof(fastimage_image_t));
+	image->format = fastimage_error;
+}
+
 static void fastimageReadPcx(const fastimage_reader_t *reader, unsigned char *sign, fastimage_image_t *image)
 {
 	pcx_header_min_t pcx_header_min;
@@ -209,6 +248,7 @@ static void fastimageReadPng(const fastimage_reader_t *reader, unsigned char *si
 	return;
 	
 PNG_ERROR:
+	memset(image, 0, sizeof(fastimage_image_t));
 	image->format = fastimage_error;
 }
 
@@ -372,7 +412,8 @@ fastimage_image_t fastimageOpen(const fastimage_reader_t *reader)
 		fastimageReadBmp(reader, sign, &image);
 	
 	// Read TGA meta
-	// Here should be code
+	if(image.format == fastimage_tga)
+		fastimageReadTga(reader, sign, &image);
 	
 	// Read PCX meta
 	if(image.format == fastimage_pcx)

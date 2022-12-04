@@ -5,7 +5,7 @@ Library to detect image size and type
 ## Supported formats
 
 * bmp - full
-* tga - planned
+* tga - full
 * pcx - full
 * png - full
 * gif - full
