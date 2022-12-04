@@ -347,12 +347,25 @@ fastimage_image_t fastimageOpen(const fastimage_reader_t *reader)
 		image.format = fastimage_jpg;
 	else if(sign[0] == 10 && sign[1] == 5 && sign[2] == 1 && sign[3] == 8)
 		image.format = fastimage_pcx;
-		
-	// Try to detect TGA
-	// Here should be code
 	
 	// Try to detect HEIF
 	// Here should be code
+
+	// Try to detect TGA
+	switch(sign[2]) { // DataType
+		case 1: // Palette, uncompressed
+		case 9: // Palette, RLE
+			if(sign[1] == 1) // Color Map (availability)
+				image.format = fastimage_tga;
+			break;
+		case 2: // True Color, uncompressed
+		case 3: // Grayscale, uncompressed
+		case 10: // True Color, RLE
+		case 11: // Grayscale, RLE
+			if(sign[1] == 0)
+				image.format = fastimage_tga;
+			break;
+	}
 	
 	// Read BMP meta
 	if(image.format == fastimage_bmp)
