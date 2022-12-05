@@ -53,7 +53,7 @@ enum fastimage_image_format {
 	fastimage_png,
 	fastimage_gif,
 	fastimage_webp,
-	fastimage_heif,
+	fastimage_heic,
 	fastimage_jpg,
 	fastimage_avif
 };

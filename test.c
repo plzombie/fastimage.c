@@ -89,7 +89,7 @@ int main(int argc, char **argv)
 		case fastimage_webp:
 			printf("webp\n");
 			break;
-		case fastimage_heif:
+		case fastimage_heic:
 			printf("heic\n");
 			break;
 		case fastimage_jpg:

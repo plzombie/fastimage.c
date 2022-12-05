@@ -426,7 +426,7 @@ fastimage_image_t fastimageOpen(const fastimage_reader_t *reader)
 
 		for(i = 0; i < ftyp_size; i += 4) {
 			if(!memcmp(ftyp_body+i, "heic", 4) || !memcmp(ftyp_body+i, "hevc", 4)) {
-				image.format = fastimage_heif;
+				image.format = fastimage_heic;
 				break;
 			}
 			if(!memcmp(ftyp_body + i, "avif", 4) || !memcmp(ftyp_body+i, "avis", 4)) {
