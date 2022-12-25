@@ -75,7 +75,7 @@ static void fastimageReadBmp(const fastimage_reader_t *reader, unsigned char *si
 	
 	(void)sign; // Unused
 		
-	if(!reader->seek(reader->context, BMP_FILEHEADER_SIZE)) {
+	if(!reader->seek(reader->context, BMP_FILEHEADER_SIZE, false)) {
 		image->format = fastimage_error;
 
 		return;
@@ -206,7 +206,7 @@ static void fastimageReadPng(const fastimage_reader_t *reader, unsigned char *si
 			
 		png_curr_offt += (int64_t)4 + png_chunk_size;
 		
-		if(!reader->seek(reader->context, png_curr_offt))
+		if(!reader->seek(reader->context, png_curr_offt, false))
 			goto PNG_ERROR;
 	}
 	
@@ -320,7 +320,7 @@ static void fastimageReadJpeg(const fastimage_reader_t *reader, unsigned char *s
 		// Skip segment
 		jpg_curr_offt += jpg_segment_size;
 			
-		if(!reader->seek(reader->context, jpg_curr_offt)) {
+		if(!reader->seek(reader->context, jpg_curr_offt, false)) {
 			image->format = fastimage_error;
 				
 			return;
@@ -358,6 +358,73 @@ static void fastimageReadJpeg(const fastimage_reader_t *reader, unsigned char *s
 		image->bitsperpixel = image->channels * (unsigned int)(jpg_bytes[0]);
 	} else
 		image->format = fastimage_error;
+}
+
+static void fastimageDetectISOBMFF(const fastimage_reader_t *reader, unsigned char *sign, fastimage_image_t *image)
+{
+	size_t ftyp_size, i;
+	unsigned char *ftyp_body;
+
+	ftyp_size = (size_t)(sign[0])*16777216+(size_t)(sign[1])*65536+(size_t)(sign[2])*256+(size_t)(sign[3]);
+
+	if(ftyp_size < 8) return;
+
+	ftyp_size -= 4;
+	if(ftyp_size%4) return;
+
+	ftyp_body = malloc(ftyp_size);
+	if(!ftyp_body) return;
+
+	if(reader->read(reader->context, ftyp_size, ftyp_body) != ftyp_size) {
+		free(ftyp_body);
+		return;
+	}
+
+	if(memcmp(ftyp_body, "ftyp", 4))
+		return;
+
+	for(i = 4; i < ftyp_size; i += 4) {
+		if(!memcmp(ftyp_body+i, "mif1", 4) || !memcmp(ftyp_body + i, "miaf", 4)) {
+			image->format = fastimage_miaf;
+		}
+		if(!memcmp(ftyp_body+i, "heic", 4) || !memcmp(ftyp_body+i, "hevc", 4)) {
+			image->format = fastimage_heic;
+			break;
+		}
+		if(!memcmp(ftyp_body + i, "avif", 4) || !memcmp(ftyp_body+i, "avis", 4)) {
+			image->format = fastimage_avif;
+			break;
+		}
+	}
+	free(ftyp_body);
+}
+
+static void fastimageReadISOBMFF(const fastimage_reader_t *reader, unsigned char *sign, fastimage_image_t *image)
+{
+	unsigned char atom_head[8];
+
+	(void)sign;
+
+	while(1) {
+		size_t ftyp_size;
+
+		if(reader->read(reader->context, 8, atom_head) != 8) goto ISOBMFF_ERROR;
+	
+		ftyp_size = (size_t)(atom_head[0])*16777216+(size_t)(atom_head[1])*65536+(size_t)(atom_head[2])*256+(size_t)(atom_head[3]);
+		ftyp_size -= 8;
+
+		if(ftyp_size < 8) goto ISOBMFF_ERROR;
+
+		//printf("Container is %hc%hc%hc%hc\n", atom_head[4], atom_head[5], atom_head[6], atom_head[7]);
+
+		if(!memcmp(atom_head+4, "mdat", 4)) {
+			return;
+		} else if(!reader->seek(reader->context, ftyp_size, true)) goto ISOBMFF_ERROR;
+	}
+
+ISOBMFF_ERROR:
+	memset(image, 0, sizeof(fastimage_image_t));
+	image->format = fastimage_error;
 }
 
 fastimage_image_t fastimageOpen(const fastimage_reader_t *reader)
@@ -405,37 +472,8 @@ fastimage_image_t fastimageOpen(const fastimage_reader_t *reader)
 	}
 
 	// Try to detect HEIF or AVIF
-	do {
-		size_t ftyp_size, i;
-		unsigned char *ftyp_body;
-
-		ftyp_size = (size_t)(sign[0])*16777216+(size_t)(sign[1])*65536+(size_t)(sign[2])*256+(size_t)(sign[3]);
-
-		if(ftyp_size < 8) break;
-
-		ftyp_size -= 8;
-		if(ftyp_size%4) break;
-
-		ftyp_body = malloc(ftyp_size);
-		if(!ftyp_body) break;
-
-		if(reader->read(reader->context, ftyp_size, ftyp_body) != ftyp_size) {
-			free(ftyp_body);
-			break;
-		}
-
-		for(i = 0; i < ftyp_size; i += 4) {
-			if(!memcmp(ftyp_body+i, "heic", 4) || !memcmp(ftyp_body+i, "hevc", 4)) {
-				image.format = fastimage_heic;
-				break;
-			}
-			if(!memcmp(ftyp_body + i, "avif", 4) || !memcmp(ftyp_body+i, "avis", 4)) {
-				image.format = fastimage_avif;
-				break;
-			}
-		}
-		free(ftyp_body);
-	} while(0);
+	if(image.format == fastimage_unknown)
+		fastimageDetectISOBMFF(reader, sign, &image); // Should be last, because we read some data here
 	
 	// Read BMP meta
 	if(image.format == fastimage_bmp)
@@ -460,8 +498,9 @@ fastimage_image_t fastimageOpen(const fastimage_reader_t *reader)
 	// Read WEBP meta
 	// Here should be code
 	
-	// Read HEIF meta
-	// Here should be code
+	// Read HEIC or AVIF meta
+	if(image.format == fastimage_heic || image.format == fastimage_avif || image.format == fastimage_miaf)
+		fastimageReadISOBMFF(reader, sign, &image);
 	
 	// Read JPG meta
 	if(image.format == fastimage_jpg)
@@ -475,12 +514,12 @@ static size_t FASTIMAGE_APIENTRY fastimageFileRead(void *context, size_t size, v
 	return fread(buf, 1, size, context);
 }
 
-static bool FASTIMAGE_APIENTRY fastimageFileSeek(void *context, int64_t pos)
+static bool FASTIMAGE_APIENTRY fastimageFileSeek(void *context, int64_t pos, bool seek_cur)
 {
 #if defined(_WIN32)
-	return _fseeki64(context, pos, SEEK_SET) == 0;
+	return _fseeki64(context, pos, seek_cur?(SEEK_CUR):(SEEK_SET)) == 0;
 #else
-	return fseeko64(context, pos, SEEK_SET) == 0;
+	return fseeko64(context, pos, seek_cur?(SEEK_CUR):(SEEK_SET)) == 0;
 #endif
 }
 
@@ -577,7 +616,7 @@ static size_t FASTIMAGE_APIENTRY fastimageHttpRead(void *context, size_t size, v
 	return 0;
 }
 
-static bool FASTIMAGE_APIENTRY fastimageHttpSeek(void *context, int64_t pos)
+static bool FASTIMAGE_APIENTRY fastimageHttpSeek(void *context, int64_t pos, bool seek_cur)
 {
 	return false;
 }
@@ -693,13 +732,15 @@ static size_t FASTIMAGE_APIENTRY fastimageHttpRead(void *context, size_t size, v
 	return total_downloaded;
 }
 
-static bool FASTIMAGE_APIENTRY fastimageHttpSeek(void *context, int64_t pos)
+static bool FASTIMAGE_APIENTRY fastimageHttpSeek(void *context, int64_t pos, bool seek_cur)
 {
 	fastimage_http_context_t *httpc;
 	int64_t bytes_to_read;
 	char *buf;
 
 	httpc = (fastimage_http_context_t *)context;
+
+	if(seek_cur) pos += httpc->offset;
 
 	if(pos < httpc->offset)
 		return false;

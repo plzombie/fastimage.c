@@ -55,7 +55,8 @@ enum fastimage_image_format {
 	fastimage_webp,
 	fastimage_heic,
 	fastimage_jpg,
-	fastimage_avif
+	fastimage_avif,
+	fastimage_miaf // Not heic and not avif
 };
 
 typedef struct {
@@ -68,7 +69,7 @@ typedef struct {
 } fastimage_image_t;
 
 typedef size_t (FASTIMAGE_APIENTRY * fastimage_readfunc_t)(void *context, size_t size, void *buf);
-typedef bool (FASTIMAGE_APIENTRY * fastimage_seekfunc_t)(void *context, int64_t pos);
+typedef bool (FASTIMAGE_APIENTRY * fastimage_seekfunc_t)(void *context, int64_t pos, bool seek_cur);
 
 typedef struct {
 	void *context;

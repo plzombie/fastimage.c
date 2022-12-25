@@ -10,7 +10,7 @@ Library to detect image size and type
 * png - full
 * gif - full
 * webp - detect only
-* heif - detect only
+* heic - detect only
 * jpg - full
 * avif - detect only
 
