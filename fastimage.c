@@ -417,10 +417,40 @@ static void fastimageReadISOBMFF(const fastimage_reader_t *reader, unsigned char
 
 		//printf("Container is %hc%hc%hc%hc\n", atom_head[4], atom_head[5], atom_head[6], atom_head[7]);
 
-		if(!memcmp(atom_head+4, "mdat", 4)) {
-			return;
+		if(!memcmp(atom_head+4, "meta", 4)) {
+			unsigned char *atom_data;
+			size_t i;
+
+			printf("malloc\n");
+			atom_data = malloc(ftyp_size);
+			if(!atom_data) goto ISOBMFF_ERROR;
+
+			if(reader->read(reader->context, ftyp_size, atom_data) != ftyp_size) {
+				free(atom_data);
+				goto ISOBMFF_ERROR;
+			}
+
+			// Very dirty implementation (I don't know what should be correct)
+			for(i = 0; i < ftyp_size-20; i++) {
+				// ispe 20 (12 - wid(be), 16 - hei(be))
+				if(!memcmp(atom_data+i, "\x00\x00\x00\x14ispe", 8)) {
+					image->width = (size_t)(atom_data[i+12])*16777216+(size_t)(atom_data[i+13])*65536+(size_t)(atom_data[i+14])*256+(size_t)(atom_data[i+15]);
+					image->height = (size_t)(atom_data[i+16])*16777216+(size_t)(atom_data[i+17])*65536+(size_t)(atom_data[i+18])*256+(size_t)(atom_data[i+19]);
+				} else if(!memcmp(atom_data+i, "\x00\x00\x00\x10pixi", 8) || !memcmp(atom_data+i, "\x00\x00\x00\x0epixi", 8)) {
+					size_t j;
+
+					image->channels += atom_data[i+12];
+					for(j = 0; j < atom_data[i+12]; j++)
+						image->bitsperpixel += atom_data[i+13];
+				}
+			}
+			
+			free(atom_data);
+			break;
 		} else if(!reader->seek(reader->context, ftyp_size, true)) goto ISOBMFF_ERROR;
 	}
+
+	return;
 
 ISOBMFF_ERROR:
 	memset(image, 0, sizeof(fastimage_image_t));
