@@ -439,6 +439,9 @@ static void fastimageReadISOBMFF(const fastimage_reader_t *reader, unsigned char
 					size_t j;
 
 					image->channels += atom_data[i+12];
+
+					if(atom_data[i+12] > atom_data[i+3]-13) goto ISOBMFF_ERROR;
+
 					for(j = 0; j < atom_data[i+12]; j++)
 						image->bitsperpixel += atom_data[i+13];
 				}
@@ -637,17 +640,37 @@ fastimage_image_t fastimageOpenFileW(const wchar_t *filename)
 #if defined(FASTIMAGE_USE_LIBCURL)
 typedef struct {
 	CURL *curl;
-	int64_t offset;
+	size_t offset;
+	size_t filesize;
+	unsigned char *filedata;
 } fastimage_curl_context_t;
 
 static size_t FASTIMAGE_APIENTRY fastimageHttpRead(void *context, size_t size, void* buf)
 {
-	return 0;
+	fastimage_curl_context_t *curlc;
+
+	curlc = (fastimage_curl_context_t *)context;
+	
+	if(size > (curlc->filesize-curlc->offset))
+		return 0;
+
+	memcpy(buf, curlc->filedata+curlc->offset, size);
+	curlc->offset += size;
+
+	return size;
 }
 
 static bool FASTIMAGE_APIENTRY fastimageHttpSeek(void *context, int64_t pos, bool seek_cur)
 {
-	return false;
+	fastimage_curl_context_t *curlc;
+
+	curlc = (fastimage_curl_context_t *)context;
+
+	if(pos > curlc->filesize) return false;
+
+	curlc->offset = pos;
+
+	return true;
 }
 
 fastimage_image_t fastimageOpenHttpA(const char *url, bool support_proxy)
