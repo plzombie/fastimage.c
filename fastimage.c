@@ -421,7 +421,6 @@ static void fastimageReadISOBMFF(const fastimage_reader_t *reader, unsigned char
 			unsigned char *atom_data;
 			size_t i;
 
-			printf("malloc\n");
 			atom_data = malloc(ftyp_size);
 			if(!atom_data) goto ISOBMFF_ERROR;
 
