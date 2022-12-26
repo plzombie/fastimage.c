@@ -727,6 +727,8 @@ fastimage_image_t fastimageOpenHttpA(const char *url, bool support_proxy)
 		reader.seek = fastimageHttpSeek;
 
 		image = fastimageOpen(&reader);
+		
+		free(context.filedata);
 	}
 	
 	if(!success) {
