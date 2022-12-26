@@ -683,7 +683,7 @@ static size_t fastimageCurlWriteData(void *ptr, size_t size, size_t nmemb, fasti
 	block_size = size*nmemb;
 	
 	if(context->filedata)
-		_filedata = realloc(context->filedata, block_size);
+		_filedata = realloc(context->filedata, context->filesize+block_size);
 	else
 		_filedata = malloc(block_size);
 		
