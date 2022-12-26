@@ -21,4 +21,4 @@ Library to detect image size and type
 
 ### libcurl
 
-To use libcurl define 
+To use libcurl define FASTIMAGE_USE_LIBCURL. For now the whole file is always downloaded.

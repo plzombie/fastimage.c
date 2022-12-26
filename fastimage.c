@@ -681,16 +681,18 @@ fastimage_image_t fastimageOpenHttpA(const char *url, bool support_proxy)
 	
 	context.offset = 0;
 	context.curl = curl_easy_init();
-	if(!curl) success = false;
+	if(!context.curl) success = false;
 	
 	if(success) {
-		curl_easy_setopt(curl, CURLOPT_URL, url);
+		curl_easy_setopt(context.curl, CURLOPT_URL, url);
 	
-		if(curl_easy_perform(curl) != CURLE_OK)
+		if(curl_easy_perform(context.curl) != CURLE_OK)
 			success = false;
 	}
 
 	if(success) {
+		fastimage_reader_t reader;
+		
 		reader.context = &context;
 		reader.read = fastimageHttpRead;
 		reader.seek = fastimageHttpSeek;
