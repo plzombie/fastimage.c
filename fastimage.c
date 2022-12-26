@@ -26,10 +26,6 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#if defined(FASTIMAGE_USE_LIBCURL)
-#include <curl/curl.h>
-#endif
-
 #if defined(_WIN32)
 #include <Windows.h>
 #if !defined(__WATCOMC__)
@@ -38,6 +34,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #else
 #define _LARGEFILE_SOURCE
 #define _LARGEFILE64_SOURCE
+#endif
+
+#if defined(FASTIMAGE_USE_LIBCURL)
+#include <curl/curl.h>
 #endif
 
 #include "fastimage.h"
@@ -673,6 +673,32 @@ static bool FASTIMAGE_APIENTRY fastimageHttpSeek(void *context, int64_t pos, boo
 	return true;
 }
 
+static size_t fastimageCurlWriteData(void *ptr, size_t size, size_t nmemb, fastimage_curl_context_t *context)
+{
+	size_t block_size;
+	unsigned char *_filedata;
+	
+	if((SIZE_MAX-context->filesize)/nmemb < size) return 0;
+	
+	block_size = size*nmemb;
+	
+	if(context->filedata)
+		_filedata = realloc(context->filedata, block_size);
+	else
+		_filedata = malloc(block_size);
+		
+	if(_filedata) {
+		context->filedata = _filedata;
+		context->filesize += block_size;
+		memcpy(context->filedata+context->offset, ptr, block_size);
+		context->offset = context->filesize;
+		
+		return nmemb;
+	}
+
+	return 0;
+}
+
 fastimage_image_t fastimageOpenHttpA(const char *url, bool support_proxy)
 {
 	fastimage_image_t image;
@@ -680,12 +706,14 @@ fastimage_image_t fastimageOpenHttpA(const char *url, bool support_proxy)
 	bool success = true;
 	
 	context.offset = 0;
+	context.filesize = 0;
 	context.curl = curl_easy_init();
 	if(!context.curl) success = false;
 	
 	if(success) {
 		curl_easy_setopt(context.curl, CURLOPT_URL, url);
-	
+		curl_easy_setopt(context.curl, CURLOPT_WRITEFUNCTION, fastimageCurlWriteData);
+		
 		if(curl_easy_perform(context.curl) != CURLE_OK)
 			success = false;
 	}
@@ -693,6 +721,7 @@ fastimage_image_t fastimageOpenHttpA(const char *url, bool support_proxy)
 	if(success) {
 		fastimage_reader_t reader;
 		
+		context.offset = 0; // because it changed in curl_easy_perform
 		reader.context = &context;
 		reader.read = fastimageHttpRead;
 		reader.seek = fastimageHttpSeek;
