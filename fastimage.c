@@ -957,12 +957,24 @@ fastimage_image_t fastimageOpenHttpW(const wchar_t *url, bool support_proxy)
 fastimage_image_t fastimageOpenHttpA(const char *url, bool support_proxy)
 {
 	fastimage_image_t image;
+	wchar_t *wurl;
+	size_t url_len;
 
-	(void)url;
-	(void)support_proxy;
+	url_len = strlen(url);
+	wurl = malloc((url_len+1)*sizeof(wchar_t));
+	if(!wurl) {
+		memset(&image, 0, sizeof(fastimage_image_t));
+		image.format = fastimage_error;
+		
+		return image;
+	}
+	wurl[url_len] = 0;
+	
+	mbstowcs(wurl, url, url_len);
 
-	memset(&image, 0, sizeof(fastimage_image_t));
-	image.format = fastimage_error;
+	image = fastimageOpenHttpW(wurl, support_proxy);
+	
+	free(wurl);
 	
 	return image;
 }
