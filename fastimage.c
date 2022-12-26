@@ -705,14 +705,14 @@ fastimage_image_t fastimageOpenHttpA(const char *url, bool support_proxy)
 	fastimage_curl_context_t context;
 	bool success = true;
 	
-	context.offset = 0;
-	context.filesize = 0;
+	memset(&context, 0, sizeof(fastimage_curl_context_t));
 	context.curl = curl_easy_init();
 	if(!context.curl) success = false;
 	
 	if(success) {
 		curl_easy_setopt(context.curl, CURLOPT_URL, url);
 		curl_easy_setopt(context.curl, CURLOPT_WRITEFUNCTION, fastimageCurlWriteData);
+		curl_easy_setopt(context.curl, CURLOPT_WRITEDATA, &context);
 		
 		if(curl_easy_perform(context.curl) != CURLE_OK)
 			success = false;
