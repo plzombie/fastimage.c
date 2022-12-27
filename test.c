@@ -76,9 +76,9 @@ int main(int argc, char **argv)
 	} else if(!wcscmp(link_type, L"http")) {
 		image = fastimageOpenHttpW(link_path, true);
 #else
-	if(!strcmp(argv[1], "file")) {
+	if(!strcmp(link_type, "file")) {
 		image = fastimageOpenFileA(link_path);
-	} else if(!strcmp(argv[1], "http")) {
+	} else if(!strcmp(link_type, "http")) {
 		image = fastimageOpenHttpA(link_path, true);
 #endif
 	} else {
