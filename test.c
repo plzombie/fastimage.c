@@ -38,24 +38,48 @@ int main(int argc, char **argv)
 #endif
 {
 	fastimage_image_t image;
+#if defined(_WIN32)
+	wchar_t *link_type, *link_path;
+#else
+	char *link_type, *link_path;
+#endif
 
-	if(argc != 3) {
-		printf("test.exe type input\n"
-		       "\ttype = file - file input\n");
+	if(argc < 2 || argc > 3) {
+		printf("test.exe [type] input\n"
+		       "\ttype = file - file input\n"
+			   "\ttype = http - http url\n");
 		
 		return 0;
 	}
+
+	if(argc == 3) {
+		link_type = argv[1];
+		link_path = argv[2];
+	} else {
+		link_path = argv[1];
+#if defined(_WIN32)
+		if(!wcsncmp(link_path, L"http://", 7) || !wcsncmp(link_path, L"https://", 8))
+			link_type = L"http";
+		else
+			link_type = L"file";
+#else
+		if(!strncmp(link_path, "http://", 7) || !strncmp(link_path, "https://", 8))
+			link_type = "http";
+		else
+			link_type = "file";
+#endif
+	}
 	
 #if defined(_WIN32)
-	if(!wcscmp(argv[1], L"file")) {
-		image = fastimageOpenFileW(argv[2]);
-	} else if(!wcscmp(argv[1], L"http")) {
-		image = fastimageOpenHttpW(argv[2], true);
+	if(!wcscmp(link_type, L"file")) {
+		image = fastimageOpenFileW(link_path);
+	} else if(!wcscmp(link_type, L"http")) {
+		image = fastimageOpenHttpW(link_path, true);
 #else
 	if(!strcmp(argv[1], "file")) {
-		image = fastimageOpenFileA(argv[2]);
+		image = fastimageOpenFileA(link_path);
 	} else if(!strcmp(argv[1], "http")) {
-		image = fastimageOpenHttpA(argv[2], true);
+		image = fastimageOpenHttpA(link_path, true);
 #endif
 	} else {
 		printf("Unknown input type\n");
