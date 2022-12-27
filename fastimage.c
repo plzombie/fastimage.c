@@ -713,6 +713,7 @@ fastimage_image_t fastimageOpenHttpA(const char *url, bool support_proxy)
 		curl_easy_setopt(context.curl, CURLOPT_URL, url);
 		curl_easy_setopt(context.curl, CURLOPT_WRITEFUNCTION, fastimageCurlWriteData);
 		curl_easy_setopt(context.curl, CURLOPT_WRITEDATA, &context);
+		curl_easy_setopt(context.curl, CURLOPT_USERAGENT, "fastimage_c/1.0");
 		
 		if(curl_easy_perform(context.curl) != CURLE_OK)
 			success = false;
