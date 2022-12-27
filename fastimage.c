@@ -313,7 +313,7 @@ static void fastimageReadJpeg(const fastimage_reader_t *reader, unsigned char *s
 			
 		jpg_segment_size -= 2;
 			
-		if(jpg_frame == 0xC0FF || jpg_frame == 0xC1FF || jpg_frame == 0xC2FF || jpg_frame == 0xDBC0) {
+		if(jpg_frame == 0xC0FF || jpg_frame == 0xC1FF || jpg_frame == 0xC2FF) {
 			break;
 		}
 			
@@ -336,7 +336,7 @@ static void fastimageReadJpeg(const fastimage_reader_t *reader, unsigned char *s
 		jpg_curr_offt += 2;
 	}
 		
-	if(jpg_frame == 0xC0FF || jpg_frame == 0xC1FF || jpg_frame == 0xC2FF || jpg_frame == 0xDBC0) {
+	if(jpg_frame == 0xC0FF || jpg_frame == 0xC1FF || jpg_frame == 0xC2FF) {
 		// Found segment with header
 		unsigned char jpg_bytes[6];
 		
@@ -775,7 +775,7 @@ typedef struct {
 	int64_t offset;
 } fastimage_http_context_t;
 
-static size_t FASTIMAGE_APIENTRY fastimageHttpRead(void *context, size_t size, void* buf)
+static size_t FASTIMAGE_APIENTRY fastimageHttpRead(void *context, size_t size, void *buf)
 {
 	fastimage_http_context_t* httpc;
 	
@@ -806,6 +806,7 @@ static size_t FASTIMAGE_APIENTRY fastimageHttpRead(void *context, size_t size, v
 
 			//printf("downloaded %u\n", data_downloaded);
 
+			(char *)buf += data_downloaded;
 			httpc->offset += data_downloaded;
 			total_downloaded += data_downloaded;
 		}
