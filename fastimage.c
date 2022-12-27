@@ -313,7 +313,7 @@ static void fastimageReadJpeg(const fastimage_reader_t *reader, unsigned char *s
 			
 		jpg_segment_size -= 2;
 			
-		if(jpg_frame == 0xC0FF || jpg_frame == 0xC1FF || jpg_frame == 0xC2FF) {
+		if(jpg_frame == 0xC0FF || jpg_frame == 0xC1FF || jpg_frame == 0xC2FF || jpg_frame == 0xDBC0) {
 			break;
 		}
 			
@@ -336,7 +336,7 @@ static void fastimageReadJpeg(const fastimage_reader_t *reader, unsigned char *s
 		jpg_curr_offt += 2;
 	}
 		
-	if(jpg_frame == 0xC0FF || jpg_frame == 0xC1FF || jpg_frame == 0xC2FF) {
+	if(jpg_frame == 0xC0FF || jpg_frame == 0xC1FF || jpg_frame == 0xC2FF || jpg_frame == 0xDBC0) {
 		// Found segment with header
 		unsigned char jpg_bytes[6];
 		
