@@ -937,7 +937,7 @@ fastimage_image_t fastimageOpenHttpW(const wchar_t *url, bool support_proxy)
 			reader.seek = fastimageHttpSeek;
 
 			image = fastimageOpen(&reader);
-		} else
+		}
 
 		if(results == FALSE) success = false;
 	}
