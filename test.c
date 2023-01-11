@@ -122,6 +122,12 @@ int main(int argc, char **argv)
 		case fastimage_avif:
 			printf("avif\n");
 			break;
+		case fastimage_miaf:
+			printf("miaf\n");
+			break;
+		case fastimage_qoi:
+			printf("qoi\n");
+			break;
 		default:
 			printf("other\n");		
 	}

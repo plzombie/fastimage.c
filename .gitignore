@@ -49,6 +49,7 @@
 *.jpg
 *.avif
 *.avifs
+*.qoi
 
 #GCC
 *.o

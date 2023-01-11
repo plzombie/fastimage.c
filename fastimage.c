@@ -68,6 +68,15 @@ typedef struct {
 	short biBitCount;
 } bmp_infoheader_min_t;
 
+#pragma pack(push, 1)
+typedef struct {
+	//char sign[4]; // Already read it
+	unsigned int width;
+	unsigned int height;
+	unsigned char channels;
+	unsigned char colorspace;
+} qoi_header_t;
+#pragma pack(pop)
 
 static void fastimageReadBmp(const fastimage_reader_t *reader, unsigned char *sign, fastimage_image_t *image)
 {
@@ -459,6 +468,28 @@ ISOBMFF_ERROR:
 	image->format = fastimage_error;
 }
 
+static void fastimageReadQoi(const fastimage_reader_t *reader, unsigned char *sign, fastimage_image_t *image)
+{
+	qoi_header_t head;
+	
+	(void)sign; // unused
+	
+	if(reader->read(reader->context, sizeof(qoi_header_t), &head) != sizeof(qoi_header_t)) goto QOI_ERROR;
+
+	if(head.channels < 3 || head.channels > 4) goto QOI_ERROR;
+	if(head.colorspace > 1) goto QOI_ERROR;
+	
+	image->width = ((head.width&0xff000000)>>24)+((head.width&0xff0000)>>16)+((head.width&0xff00)<<16)+((head.width&0xff)<<24);
+	image->height = ((head.height&0xff000000)>>24)+((head.height&0xff0000)>>16)+((head.height&0xff00)<<16)+((head.height&0xff)<<24);
+	image->channels = head.channels;
+	image->bitsperpixel = head.channels*8;
+	
+	return;
+QOI_ERROR:
+	memset(image, 0, sizeof(fastimage_image_t));
+	image->format = fastimage_error;
+}
+
 fastimage_image_t fastimageOpen(const fastimage_reader_t *reader)
 {
 	fastimage_image_t image;
@@ -482,6 +513,8 @@ fastimage_image_t fastimageOpen(const fastimage_reader_t *reader)
 		image.format = fastimage_gif;
 	else if(!memcmp(sign, "RIFF", 4))
 		image.format = fastimage_webp;
+	else if(!memcmp(sign, "qoif", 4))
+		image.format = fastimage_qoi;
 	else if(sign[0] == 0xFF && sign[1] == 0xD8)
 		image.format = fastimage_jpg;
 	else if(sign[0] == 10 && sign[1] == 5 && sign[2] == 1 && sign[3] == 8)
@@ -537,6 +570,9 @@ fastimage_image_t fastimageOpen(const fastimage_reader_t *reader)
 	// Read JPG meta
 	if(image.format == fastimage_jpg)
 		fastimageReadJpeg(reader, sign, &image);
+	
+	if(image.format == fastimage_qoi)
+		fastimageReadQoi(reader, sign, &image);
 	
 	return image;
 }

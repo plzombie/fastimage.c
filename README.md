@@ -13,6 +13,7 @@ Library to detect image size and type
 * heic - detect and size only
 * jpg - full
 * avif - full
+* qoi - full
 
 ## Supported data streams
 

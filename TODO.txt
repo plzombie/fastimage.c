@@ -1,1 +1,1 @@
-BPG, QOI, FLIF
+BPG, JPEG XL or FLIF

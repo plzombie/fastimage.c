@@ -56,7 +56,8 @@ enum fastimage_image_format {
 	fastimage_heic,
 	fastimage_jpg,
 	fastimage_avif,
-	fastimage_miaf // Not heic and not avif
+	fastimage_miaf, // Not heic and not avif
+	fastimage_qoi
 };
 
 typedef struct {
