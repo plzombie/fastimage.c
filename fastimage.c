@@ -515,6 +515,8 @@ fastimage_image_t fastimageOpen(const fastimage_reader_t *reader)
 		image.format = fastimage_webp;
 	else if(!memcmp(sign, "qoif", 4))
 		image.format = fastimage_qoi;
+	else if(!memcmp(sign, "qoyf", 4))
+		image.format = fastimage_qoy;
 	else if(sign[0] == 0xFF && sign[1] == 0xD8)
 		image.format = fastimage_jpg;
 	else if(sign[0] == 10 && sign[1] == 5 && sign[2] == 1 && sign[3] == 8)
@@ -571,7 +573,7 @@ fastimage_image_t fastimageOpen(const fastimage_reader_t *reader)
 	if(image.format == fastimage_jpg)
 		fastimageReadJpeg(reader, sign, &image);
 	
-	if(image.format == fastimage_qoi)
+	if(image.format == fastimage_qoi || image.format == fastimage_qoy)
 		fastimageReadQoi(reader, sign, &image);
 	
 	return image;

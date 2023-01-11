@@ -128,6 +128,9 @@ int main(int argc, char **argv)
 		case fastimage_qoi:
 			printf("qoi\n");
 			break;
+		case fastimage_qoy:
+			printf("qoy\n");
+			break;
 		default:
 			printf("other\n");		
 	}
