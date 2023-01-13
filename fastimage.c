@@ -389,8 +389,11 @@ static void fastimageDetectISOBMFF(const fastimage_reader_t *reader, unsigned ch
 		return;
 	}
 
-	if(memcmp(ftyp_body, "ftyp", 4))
+	if(memcmp(ftyp_body, "ftyp", 4)) {
+		free(ftyp_body);
+
 		return;
+	}
 
 	for(i = 4; i < ftyp_size; i += 4) {
 		if(!memcmp(ftyp_body+i, "mif1", 4) || !memcmp(ftyp_body + i, "miaf", 4)) {
