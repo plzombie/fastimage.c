@@ -26,6 +26,11 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#if defined(_DEBUG) && defined(USE_STB_LEAKCHECK)
+#define STB_LEAKCHECK_IMPLEMENTATION
+#include "third_party/stb_leakcheck.h"
+#endif
+
 #include "fastimage.h"
 
 #include <stdio.h>
@@ -142,6 +147,11 @@ int main(int argc, char **argv)
 		printf("palette: %u bits, palette element %u bits %u channels\n", image.palette, image.bitsperpixel, image.channels);
 	else
 		printf("bits per pixel: %u, %u channel\n", image.bitsperpixel, image.channels);	      
+
+
+#if defined(_DEBUG) && defined(USE_STB_LEAKCHECK)
+	stb_leakcheck_dumpmem();
+#endif
 
 	return 0;
 }

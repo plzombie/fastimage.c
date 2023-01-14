@@ -64,7 +64,7 @@ WCC
 WString
 23
 ?????Macro definitions:
-1
+0
 17
 WString
 5
@@ -80,11 +80,11 @@ WCC
 WString
 23
 ?????Macro definitions:
-0
+1
 21
 WString
-5
-WIN32
+30
+WIN32 USE_STB_LEAKCHECK _DEBUG
 0
 22
 WVList
