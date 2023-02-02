@@ -902,28 +902,42 @@ fastimage_image_t fastimageOpenHttpW(const wchar_t *url, bool support_proxy)
 {
 	HINTERNET session = 0, connect = 0, request = 0;
 	bool success = true;
-	wchar_t *url_server = 0, *url_path = 0, *url_copy = 0;
-	size_t url_len;
+	wchar_t *url_server = 0, *url_path = 0, *url_server_copy = 0;
+	size_t url_server_len, url_server_copy_len;
 	fastimage_image_t image;
 	
-	url_len = wcslen(url);
-	url_copy = malloc((url_len+1)*sizeof(wchar_t));
-	if(url_copy) {
-		memcpy(url_copy, url, url_len*2);
-		url_copy[url_len] = 0;
+	url_server = wcschr(url, L':');
+	if(!url_server) success = false;
+	else if(*(url_server+1) == '/' && *(url_server+2) == '/') url_server += 3;
+	else success = false;
+	
+	if(success) {
+		url_path = wcschr(url_server, L'/');
+		if(!url_path) success = false;
+		else {
+			url_path += 1;
+		}
+	}
 
-		url_server = wcschr(url_copy, L':');
-		if(!url_server) success = false;
-		else if(*(url_server+1) == '/' && *(url_server+2) == '/') {
-			url_server += 3;
-			url_path = wcschr(url_server, L'/');
-			if(!url_path) success = false;
-			else {
-				*url_path = 0;
-				url_path += 1;
-			}
+	if(success) {
+		url_server_len = url_path-url_server-1;
+		//wprintf(L"%lld %ls\n", (long long)url_server_len, url_server);
+		//wprintf(L"%ls\n", url_path);
+		url_server_copy_len = IdnToAscii(0, url_server, (int)url_server_len, 0, 0)+1;
+		if(!url_server_copy_len) success = false;
+	}
+
+	if(success) {
+		url_server_copy = malloc((url_server_copy_len) * sizeof(wchar_t));
+
+		if(url_server_copy) {
+			if(!IdnToAscii(0, url_server, (int)url_server_len, url_server_copy, (int)url_server_copy_len)) success = false;
+			url_server_copy[url_server_copy_len-1] = 0;
+			//memcpy(url_server_copy, url_server, url_server_len*sizeof(wchar_t));
+			//url_server_copy[url_server_len] = 0;
+			//wprintf(L"%lld %ls\n", (long long)url_server_copy_len, url_server_copy);
 		} else success = false;
-	} else success = false;
+	}
 
 	if(success) {
 		session = WinHttpOpen(
@@ -938,7 +952,7 @@ fastimage_image_t fastimageOpenHttpW(const wchar_t *url, bool support_proxy)
 	if(success) {
 		connect = WinHttpConnect(
 			session,
-			url_server,
+			url_server_copy,
 			INTERNET_DEFAULT_PORT,
 			0);
 		if(!connect) success = false;
@@ -993,7 +1007,7 @@ fastimage_image_t fastimageOpenHttpW(const wchar_t *url, bool support_proxy)
 		image.format = fastimage_error;
 	}
 
-	if(url_copy) free(url_copy);
+	if(url_server_copy) free(url_server_copy);
 	if(request) WinHttpCloseHandle(request);
 	if(connect) WinHttpCloseHandle(connect);
 	if(session) WinHttpCloseHandle(session);
