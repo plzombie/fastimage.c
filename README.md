@@ -9,11 +9,12 @@ Library to detect image size and type
 * pcx - full
 * png - full
 * gif - full
-* webp - detect only
+* webp - detect and depth
 * heic - detect and size only
 * jpg - full
 * avif - full
 * qoi/qoy - full
+* ani - detect only
 
 ## Supported data streams
 

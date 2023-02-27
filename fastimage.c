@@ -292,6 +292,47 @@ static void fastimageReadGif(const fastimage_reader_t *reader, unsigned char *si
 	image->palette = 8;
 }
 
+static void fastimageReadWebp(const fastimage_reader_t *reader, unsigned char *sign, fastimage_image_t *image)
+{
+	size_t riff_size;
+	char fourcc[4], vp8fourcc[4];
+	
+	(void)sign; // Unused
+	
+	if(reader->read(reader->context, 4, &riff_size) != 4) goto WEBP_ERROR;
+	if(riff_size < 8) goto WEBP_ERROR;
+	
+	if(reader->read(reader->context, 4, fourcc) != 4) goto WEBP_ERROR;
+	
+	if(memcmp(fourcc, "WEBP", 4)) {
+		if(!memcmp(fourcc, "ACON", 4))
+			image->format = fastimage_ani;
+		else
+			image->format = fastimage_unknown;
+		
+		return;
+	}
+	
+	if(reader->read(reader->context, 4, vp8fourcc) != 4) goto WEBP_ERROR;
+	
+	if(!memcmp(vp8fourcc, "VP8 ", 4)) {
+		image->bitsperpixel = 24;
+		image->channels = 3;
+	} else if(!memcmp(vp8fourcc, "VP8L", 4)) { // Lossless?
+		image->bitsperpixel = 24;
+		image->channels = 3;
+	} else if(!memcmp(vp8fourcc, "VP8X", 4)) {
+		image->bitsperpixel = 32;
+		image->channels = 4;
+	} else return;
+	
+	return;
+	
+WEBP_ERROR:
+	memset(image, 0, sizeof(fastimage_image_t));
+	image->format = fastimage_error;
+}
+
 static void fastimageReadJpeg(const fastimage_reader_t *reader, unsigned char *sign, fastimage_image_t *image)
 {
 	int64_t jpg_curr_offt = 4;
@@ -570,7 +611,8 @@ fastimage_image_t fastimageOpen(const fastimage_reader_t *reader)
 		fastimageReadGif(reader, sign, &image);
 	
 	// Read WEBP meta
-	// Here should be code
+	if(image.format == fastimage_webp)
+		fastimageReadWebp(reader, sign, &image);
 	
 	// Read HEIC or AVIF meta
 	if(image.format == fastimage_heic || image.format == fastimage_avif || image.format == fastimage_miaf)
