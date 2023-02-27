@@ -127,14 +127,11 @@ static void fastimageReadBmp(const fastimage_reader_t *reader, unsigned char *si
 static void fastimageReadTga(const fastimage_reader_t *reader, unsigned char *sign, fastimage_image_t *image)
 {
 	unsigned char tga_header[18];
-
+	
+	memset(tga_header, 0, 18);
 	memcpy(tga_header, sign, 4);
 
-	if(reader->read(reader->context, 14, tga_header+4) != 14) {
-		image->format = fastimage_error;
-
-		return;
-	}
+	if(reader->read(reader->context, 14, tga_header+4) != 14) goto TGA_ERROR;
 
 	image->width = tga_header[12]+256*tga_header[13];
 	image->height = tga_header[14]+256*tga_header[15];
@@ -538,6 +535,40 @@ QOI_ERROR:
 	image->format = fastimage_error;
 }
 
+static void fastimageReadIco(const fastimage_reader_t *reader, unsigned char *sign, fastimage_image_t *image)
+{
+	char header[14];
+	
+	memcpy(header, sign, 4);
+	
+	if(reader->read(reader->context, 10, header+4) != 10) goto ICO_ERROR;
+	
+	if(!header[4] && !header[5] || header[9]) goto ICO_ERROR;
+	
+	image->width = header[6];
+	if(!image->width) image->width = 256;
+	image->height = header[7];
+	if(!image->height) image->height = 256;
+	
+	image->channels = 4;
+	image->bitsperpixel = 32;
+	
+#if 0
+	if(header[8] > 16) image->palette = 8;
+	else if(header[8] > 2) image->palette = 4;
+	else if(header[8]) image->palette = 1;
+#else
+	image->palette = header[12]+256*header[13];
+	if(image->palette > 8) image->palette = 0;
+#endif
+	
+	return;
+	
+ICO_ERROR:
+	memset(image, 0, sizeof(fastimage_image_t));
+	image->format = fastimage_error;
+}
+
 fastimage_image_t fastimageOpen(const fastimage_reader_t *reader)
 {
 	fastimage_image_t image;
@@ -569,6 +600,8 @@ fastimage_image_t fastimageOpen(const fastimage_reader_t *reader)
 		image.format = fastimage_jpg;
 	else if(sign[0] == 10 && sign[1] == 5 && sign[2] == 1 && sign[3] == 8)
 		image.format = fastimage_pcx;
+	else if(sign[0] == 0 && sign[1] == 0 && sign[2] == 1 && sign[3] == 0)
+		image.format = fastimage_ico;
 
 	// Try to detect TGA
 	switch(sign[2]) { // DataType
@@ -585,6 +618,7 @@ fastimage_image_t fastimageOpen(const fastimage_reader_t *reader)
 				image.format = fastimage_tga;
 			break;
 	}
+
 
 	// Try to detect HEIF or AVIF
 	if(image.format == fastimage_unknown)
@@ -624,6 +658,9 @@ fastimage_image_t fastimageOpen(const fastimage_reader_t *reader)
 	
 	if(image.format == fastimage_qoi || image.format == fastimage_qoy)
 		fastimageReadQoi(reader, sign, &image);
+	
+	if(image.format == fastimage_ico)
+		fastimageReadIco(reader, sign, &image);
 	
 	return image;
 }

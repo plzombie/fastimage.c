@@ -15,6 +15,7 @@ Library to detect image size and type
 * avif - full
 * qoi/qoy - full
 * ani - detect only
+* ico - full
 
 ## Supported data streams
 

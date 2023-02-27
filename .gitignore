@@ -50,6 +50,8 @@
 *.avif
 *.avifs
 *.qoi
+*.ani
+*.ico
 
 #GCC
 *.o

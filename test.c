@@ -139,6 +139,9 @@ int main(int argc, char **argv)
 		case fastimage_ani:
 			printf("ani\n");
 			break;
+		case fastimage_ico:
+			printf("ico\n");
+			break;
 		default:
 			printf("other\n");		
 	}
