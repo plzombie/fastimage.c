@@ -538,6 +538,7 @@ QOI_ERROR:
 static void fastimageReadIco(const fastimage_reader_t *reader, unsigned char *sign, fastimage_image_t *image)
 {
 	char header[14];
+	bmp_infoheader_min_t binfoh;
 	
 	memcpy(header, sign, 4);
 	
@@ -561,6 +562,17 @@ static void fastimageReadIco(const fastimage_reader_t *reader, unsigned char *si
 	image->palette = header[12]+256*header[13];
 	if(image->palette > 8) image->palette = 0;
 #endif
+	if(!reader->seek(reader->context, 8, true)) return; // Skip bitmap length
+	
+	if(reader->read(reader->context, sizeof(bmp_infoheader_min_t), &binfoh) != sizeof(bmp_infoheader_min_t)) return;
+	
+	if(binfoh.biSize == 40) { // If not, it might be PNG
+		image->width = binfoh.biWidth;
+		image->height = binfoh.biHeight / 2;
+		
+		if(binfoh.biBitCount <= 8) image->palette = binfoh.biBitCount;
+		else image->palette = 0;
+	}
 	
 	return;
 	
