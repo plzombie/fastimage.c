@@ -544,7 +544,7 @@ static void fastimageReadIco(const fastimage_reader_t *reader, unsigned char *si
 	
 	if(reader->read(reader->context, 10, header+4) != 10) goto ICO_ERROR;
 	
-	if(!header[4] && !header[5] || header[9]) goto ICO_ERROR;
+	if((!header[4] && !header[5]) || header[9]) goto ICO_ERROR; // Number of images should be greater than 0, Reserved should be 0
 	
 	image->width = header[6];
 	if(!image->width) image->width = 256;
