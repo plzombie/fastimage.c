@@ -802,6 +802,8 @@ static bool FASTIMAGE_APIENTRY fastimageHttpSeek(void *context, int64_t pos, boo
 
 	curlc = (fastimage_curl_context_t *)context;
 
+	if(seek_cur) pos += curlc->offset;
+
 	if(pos > curlc->filesize) return false;
 
 	curlc->offset = pos;
